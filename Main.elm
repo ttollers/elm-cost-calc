@@ -6,7 +6,7 @@ import Html.Events exposing (onClick, onInput)
 
 
 main =
-    Html.beginnerProgram { model = question1, view = view, update = update }
+    Html.beginnerProgram { model = model, view = view, update = update }
 
 
 
@@ -22,12 +22,15 @@ questionNumber =
     0
 
 
-type alias Questions =
-    List Question
+type alias Model =
+    { questions : List Question
+    , currentQuestion : Int
+    }
 
 
 type alias Question =
-    { answer : String
+    { id : Int
+    , answer : String
     , question : String
     , hint : String
     }
@@ -38,12 +41,24 @@ question1 =
     { question = "This is the first question?"
     , answer = ""
     , hint = "This is a great hint"
+    , id = 1
     }
 
 
-questions : Questions
-questions =
-    [ question1 ]
+question2 : Question
+question2 =
+    { question = "This is the second question?"
+    , answer = ""
+    , hint = "This is a great hint"
+    , id = 2
+    }
+
+
+model : Model
+model =
+    { questions = [ question1, question2 ]
+    , currentQuestion = question1.id
+    }
 
 
 
@@ -51,25 +66,42 @@ questions =
 
 
 type Msg
-    = Change String
+    = UpdateQuestion Int String
+    | NextQuestion
 
 
-update : Msg -> Question -> Question
-update msg question =
+update : Msg -> Model -> Model
+update msg model =
     case msg of
-        Change newContent ->
-            { question | answer = newContent }
+        UpdateQuestion id answer ->
+            let
+                mapFn question =
+                    if question.id == id then
+                        { question | answer = answer }
+                    else
+                        question
+            in
+            { model | questions = List.map mapFn model.questions }
+
+        NextQuestion ->
+            { model | currentQuestion = Basics.max (model.currentQuestion + 1) (List.length model.questions) }
 
 
 
 -- VIEW
 
 
-view : Question -> Html Msg
-view question =
+questionView : Question -> Html Msg
+questionView question =
     div []
         [ p [] [ text question.question ]
-        , input [ placeholder question.hint, onInput Change ] []
+        , input [ placeholder question.hint, onInput (UpdateQuestion question.id) ] []
         , div [] [ text question.answer ]
-        , button [ onClick (Change "reset") ] [ text "Save" ]
+        , button [ onClick NextQuestion ] [ text "Save" ]
         ]
+
+
+view : Model -> Html Msg
+view model =
+    div []
+        (List.map questionView (List.filter (\q -> q.id == model.currentQuestion) model.questions))
